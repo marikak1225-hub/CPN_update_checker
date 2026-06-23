@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 st.title("URL更新チェック")
 
@@ -10,9 +11,28 @@ st.title("URL更新チェック")
 kw_input = st.text_area("特定KW（1行1キーワード!!改行で複数指定※OR条件）")
 
 uploaded_file = st.file_uploader("Excelアップロード", type=["xlsx"])
-st.caption("D列に検索用URLが貼ってあれば何でもOKです")
+st.caption("G列にURL / B列に結果を書き込みます")
 
 start = st.button("チェック開始")
+
+# ✅ Session（全体で使い回し）
+session = requests.Session()
+session.headers.update({
+    "User-Agent": "Mozilla/5.0"
+})
+
+# ✅ 安定取得（リトライ付き）
+def fetch_with_retry(url, retries=3):
+    for attempt in range(retries):
+        try:
+            res = session.get(url, timeout=10)
+            res.raise_for_status()
+            return res
+        except:
+            if attempt < retries - 1:
+                time.sleep(0.5)  # 少し待って再試行
+            else:
+                return None
 
 def check_url(row_idx, url, keywords):
     try:
@@ -20,13 +40,17 @@ def check_url(row_idx, url, keywords):
             return (row_idx, "URLなし")
 
         url = str(url).strip()
+
         if not url.startswith("http"):
             url = "https://" + url
 
-        headers = {"User-Agent": "Mozilla/5.0"}
+        # ✅ サーバー負荷軽減
+        time.sleep(0.1)
 
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        response = fetch_with_retry(url)
+
+        if response is None:
+            return (row_idx, "取得失敗")
 
         soup = BeautifulSoup(response.text, "html.parser")
         page_text = soup.get_text().lower()
@@ -38,13 +62,12 @@ def check_url(row_idx, url, keywords):
         else:
             return (row_idx, "該当なし")
 
-    except Exception:
+    except:
         return (row_idx, "取得失敗")
 
 # ===== 実行 =====
 if uploaded_file and kw_input and start:
 
-    # ✅ 改行で分割（←ここが今回のキモ）
     keywords = [
         kw.strip()
         for kw in kw_input.split("\n")
@@ -63,7 +86,8 @@ if uploaded_file and kw_input and start:
     futures = []
     results = {}
 
-    max_workers = 10
+    # ✅ 安定寄りに調整（ここ重要）
+    max_workers = 5
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for i in range(2, max_row + 1):
@@ -86,7 +110,6 @@ if uploaded_file and kw_input and start:
     display_data = []
     hit_count = 0
     fail_count = 0
-
 
     for i in range(2, max_row + 1):
         url = ws[f"G{i}"].value
