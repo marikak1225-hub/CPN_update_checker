@@ -167,19 +167,23 @@ if uploaded_file and st.session_state.run:
 
         if result == "取得失敗":
             fail_count += 1
-        elif result == "KW①":
-            hit1_count += 1
-        elif result == "KW②":
-            hit2_count += 1
-        elif result == "KW①,KW②":
-            both_count += 1
+
+        else:
+            hit1_flag = any(kw in result for kw in kw1_list)
+            hit2_flag = any(kw in result for kw in kw2_list)
+
+            if hit1_flag and hit2_flag:
+                both_count += 1
+            elif hit1_flag:
+                hit1_count += 1
+            elif hit2_flag:
+                hit2_count += 1
 
         display_data.append({
             "行": i,
             "URL": url,
             "判定結果": result
         })
-
     st.subheader("チェック結果")
     st.dataframe(display_data)
 
