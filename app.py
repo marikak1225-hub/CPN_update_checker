@@ -76,11 +76,12 @@ def check_url(row_idx, url, kw1_list, kw2_list, use_kw1, use_kw2):
         #  モード分岐
         if use_kw1 and use_kw2:
             if hit1 and hit2:
-                return (row_idx, "KW①,KW②", "both")
+                return (row_idx, ",".join(hit1 + hit2), "both")
             elif hit1:
-                return (row_idx, "KW①", "kw1")
+                return (row_idx, ",".join(hit1), "kw1")
             elif hit2:
-                return (row_idx, "KW②", "kw2")
+                return (row_idx, ",".join(hit2), "kw2")
+
             else:
                 return (row_idx, "該当なし", "none")
 
