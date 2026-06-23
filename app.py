@@ -12,10 +12,10 @@ st.title("URL更新チェック")
 col1, col2 = st.columns(2)
 
 with col1:
-    kw1_input = st.text_area("KW①")
+    kw1_input = st.text_area("KW①※改行でOR条件")
 
 with col2:
-    kw2_input = st.text_area("KW②")
+    kw2_input = st.text_area("KW②※改行でOR条件")
 
 uploaded_file = st.file_uploader("Excelアップロード", type=["xlsx"])
 st.caption("G列にURL / B列に結果を書き込みします。")
